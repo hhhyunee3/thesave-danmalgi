@@ -913,6 +913,10 @@ async function handle(request, env, ctx) {
 export default {
   async fetch(request, env, ctx) {
     const __blk = blockScraper(request); if (__blk) return __blk;
+    /* www 는 루트 도메인으로 모은다 */
+    const __h = new URL(request.url).hostname;
+    if (__h === SITE.domain && new URL(request.url).protocol === 'http:') { const u = new URL(request.url); return Response.redirect(ORIGIN + u.pathname + u.search, 301); }
+    if (__h === 'www.' + SITE.domain) { const u = new URL(request.url); return Response.redirect(ORIGIN + u.pathname + u.search, 301); }
     return handle(request, env, ctx);
   },
   /* 매일 IndexNow 발송 (wrangler.toml [triggers] crons) — 자기 도메인을 fetch 하지 않고 직접 실행한다 */
