@@ -1,0 +1,13 @@
+name = "thesave-danmalgi"
+main = "thesave-danmalgi_worker.js"
+compatibility_date = "2024-09-23"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "allcare_stats"
+database_id = "c201d4c2-edbe-48e1-aa8e-fcc1ce1b65a6"
+
+[triggers]
+crons = ["15 18 * * *"]
+
