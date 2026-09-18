@@ -564,6 +564,7 @@ function head(o) {
 <link rel="canonical" href="${ORIGIN}${o.path}">${o.noindex ? '<meta name="robots" content="noindex,follow">' : ''}
 <meta property="og:type" content="website"><meta property="og:site_name" content="${esc(SITE.brand)}"><meta property="og:title" content="${esc(o.title)}"><meta property="og:description" content="${esc(o.desc)}"><meta property="og:url" content="${ORIGIN}${o.path}"><meta property="og:locale" content="ko_KR">
 <meta name="theme-color" content="${T.themeColor}"><link rel="icon" href="${favicon()}">
+<link rel="alternate" type="application/rss+xml" title="${esc(SITE.brand)}" href="${ORIGIN}/rss.xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="${T.font}">
 <style>${T.css}</style>${ld}</head><body class="${T.bodyClass}">`;
 }
@@ -889,6 +890,44 @@ function allUrls() {
 }
 function xml(body) { return new Response('<?xml version="1.0" encoding="UTF-8"?>\n' + body, { headers: { 'Content-Type': 'application/xml;charset=utf-8', 'Cache-Control': 'public,max-age=86400' } }); }
 
+/* ---------- RSS ---------- */
+function rfc822(d) {
+  const t = new Date(d + 'T00:00:00+09:00');
+  const wd = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][t.getUTCDay()];
+  const mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(d.slice(5, 7)) - 1];
+  return `${wd}, ${d.slice(8, 10)} ${mo} ${d.slice(0, 4)} 00:00:00 +0900`;
+}
+/* 고정 항목(가이드·형태·업종) + 날짜별로 도는 지역 페이지 40개 */
+function rssItems() {
+  const it = [];
+  C.guides.forEach(g => it.push({ path: `/guide/${g.slug}/`, title: g.title, desc: g.desc }));
+  ACTIVE.forEach(p => it.push({ path: `/${p.key}/`, title: fill(SITE.titles.hubH1, { '제품': p.ko }), desc: fill(SITE.descs.hub, { '제품': p.ko }) }));
+  ACTIVE.forEach(p => BIZ.forEach(b => it.push({ path: `/${p.key}/biz/${b.slug}/`, title: `${b.ko} ${p.ko}`, desc: fill(SITE.descs.biz, { '업종': b.ko, '제품': p.ko }) })));
+  const regions = allUrls().filter(u => u.split('/').filter(Boolean).length >= 3);
+  const day = Math.floor(Date.now() / 86400000);
+  for (let i = 0; i < 40 && regions.length; i++) {
+    const u = regions[(day * 40 + i * 977) % regions.length];
+    const seg = u.split('/').filter(Boolean);
+    const pr = PRODUCT_MAP[seg[0]];
+    const loc = regionLabel(seg[1], seg[2], seg[3]);
+    it.push({ path: u, title: `${loc} ${pr ? pr.ko : '카드단말기'}`, desc: `${loc} ${SITE.angleShort} 안내` });
+  }
+  return it;
+}
+function rssFeed() {
+  const pub = rfc822(BUILD_DATE);
+  const items = rssItems().map(x => `<item><title>${esc(x.title)}</title><link>${ORIGIN}${x.path}</link><guid isPermaLink="true">${ORIGIN}${x.path}</guid><pubDate>${pub}</pubDate><description>${esc(x.desc || '')}</description></item>`).join('\n');
+  return `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel>
+<title>${esc(SITE.brand)}</title>
+<link>${ORIGIN}/</link>
+<description>${esc(SITE.llmsSummary)}</description>
+<language>ko</language>
+<lastBuildDate>${pub}</lastBuildDate>
+<atom:link href="${ORIGIN}/rss.xml" rel="self" type="application/rss+xml"/>
+${items}
+</channel></rss>`;
+}
+
 /* ---------- IndexNow ---------- */
 async function runIndexNow(url) {
   const urls = allUrls().map(p => ORIGIN + p);
@@ -949,7 +988,8 @@ async function handle(request, env, ctx) {
   if (path === '/' + SITE.indexnowKey + '.txt') return new Response(SITE.indexnowKey, { headers: { 'Content-Type': 'text/plain' } });
   if (path.startsWith('/api/')) return new Response('Not Found', { status: 404 });
 
-  if (path === '/robots.txt') return new Response(`User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${ORIGIN}/sitemap.xml\n`, { headers: { 'Content-Type': 'text/plain;charset=utf-8', 'Cache-Control': 'public,max-age=86400' } });
+  if (path === '/robots.txt') return new Response(`User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${ORIGIN}/sitemap.xml\nSitemap: ${ORIGIN}/rss.xml\n`, { headers: { 'Content-Type': 'text/plain;charset=utf-8', 'Cache-Control': 'public,max-age=86400' } });
+  if (path === '/rss.xml') return xml(rssFeed());
   if (path === '/sitemap.xml') {
     const n = Math.ceil(allUrls().length / SM_PART);
     let s = '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
@@ -964,7 +1004,7 @@ async function handle(request, env, ctx) {
     return xml('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + part.map(p => `<url><loc>${ORIGIN}${p}</loc><lastmod>${BUILD_DATE}</lastmod></url>`).join('\n') + '\n</urlset>');
   }
   if (path === '/llms.txt') {
-    const t = `# ${SITE.brand} (${ORIGIN})\n\n> ${SITE.llmsSummary}\n\n## 제품별 페이지\n\n${ACTIVE.map(p => `- [${p.ko}](${ORIGIN}/${p.key}/)`).join('\n')}\n\n## 페이지 구성\n\n- 지역별 안내: /{제품}/{시도}/{시군구}/{동}/\n- 업종별 안내: /{제품}/biz/{업종}/\n- 가이드: ${ORIGIN}/guide/\n${C.guides.map(g => `  - [${g.title}](${ORIGIN}/guide/${g.slug}/)`).join('\n')}\n- 전체 목록: ${ORIGIN}/list\n- 사이트맵: ${ORIGIN}/sitemap.xml\n\n\n## 연락처\n\n- 전화: ${SITE.telView}\n`;
+    const t = `# ${SITE.brand} (${ORIGIN})\n\n> ${SITE.llmsSummary}\n\n## 제품별 페이지\n\n${ACTIVE.map(p => `- [${p.ko}](${ORIGIN}/${p.key}/)`).join('\n')}\n\n## 페이지 구성\n\n- 지역별 안내: /{제품}/{시도}/{시군구}/{동}/\n- 업종별 안내: /{제품}/biz/{업종}/\n- 가이드: ${ORIGIN}/guide/\n${C.guides.map(g => `  - [${g.title}](${ORIGIN}/guide/${g.slug}/)`).join('\n')}\n- 전체 목록: ${ORIGIN}/list\n- 사이트맵: ${ORIGIN}/sitemap.xml\n- RSS: ${ORIGIN}/rss.xml\n\n\n## 연락처\n\n- 전화: ${SITE.telView}\n`;
     return new Response(t, { headers: { 'Content-Type': 'text/plain;charset=utf-8', 'Cache-Control': 'public,max-age=86400' } });
   }
 
