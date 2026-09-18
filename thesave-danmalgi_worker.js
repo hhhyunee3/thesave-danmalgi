@@ -386,7 +386,7 @@ main.ts-main{min-width:0}
 @media(min-width:700px){.ts-foot .ts-wrap{grid-template-columns:1fr 1fr}}
 .ts-foot strong{color:#fff;display:block;margin-bottom:6px}
 .ts-foot a{text-decoration:none;color:#dfe6f3;margin-right:12px;display:inline-block}
-.ts-mbar{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr 1fr;z-index:30;box-shadow:0 -2px 10px rgba(0,0,0,.12)}
+.ts-mbar{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr;z-index:30;box-shadow:0 -2px 10px rgba(0,0,0,.12)}
 .ts-mbar a,.ts-mbar button{font:inherit;font-weight:700;border:0;padding:15px 0;text-align:center;text-decoration:none;cursor:pointer}
 .ts-mbar a{background:#fff;color:var(--navy)}.ts-mbar button{background:var(--b);color:#fff}
 .ts-mbar .k{background:#FEE500;color:#191919}
@@ -407,17 +407,17 @@ main.ts-main{min-width:0}
 .ts-ok{display:none;text-align:center;padding:28px 18px}.ts-ok.on{display:block}.ts-ok strong{font-size:18px;display:block;margin-bottom:8px;color:var(--navy)}.ts-toc{background:#fff;border-left:4px solid var(--b);padding:14px 18px;margin-bottom:16px;font-size:14px;box-shadow:0 1px 3px rgba(15,31,61,.08)}.ts-toc b{display:block;margin-bottom:6px;color:var(--navy)}.ts-toc ol{margin-left:18px;color:var(--sub)}.ts-toc a{text-decoration:none}`,
   layout(o) {
     const menu = o.nav.map(n => `<a href="${n.href}"${n.on ? ' class="on"' : ''}>${esc(n.name)}</a>`).join('');
-    const side = `<aside class="ts-aside"><div class="ts-box"><h2>교체·이전 상담</h2><p style="font-size:14px;color:var(--sub)">${esc(SITE.formHint)}</p>${T.buttons()}</div><div class="ts-box"><h2>형태별 안내</h2><ul>${o.nav.map(n => `<li><a href="${n.href}">${esc(n.name)}</a></li>`).join('')}<li><a href="/list">전체 목록</a></li></ul></div></aside>`;
+    const side = `<aside class="ts-aside"><div class="ts-box"><h2>전화 문의</h2><p style="font-size:14px;color:var(--sub)">${esc(SITE.formHint)}<br>통화로 바로 안내해 드립니다.</p>${T.buttons()}</div><div class="ts-box"><h2>형태별 안내</h2><ul>${o.nav.map(n => `<li><a href="${n.href}">${esc(n.name)}</a></li>`).join('')}<li><a href="/list">전체 목록</a></li></ul></div></aside>`;
     const k = SITE.kakao ? `<a class="k" href="${SITE.kakao}" target="_blank" rel="noopener" data-tk="contact">카카오톡</a>` : '';
     return `<div class="ts-util"><div class="ts-wrap"><span>${esc(SITE.tagline)}</span><a href="tel:${SITE.tel}">상담전화 ${SITE.telView}</a></div></div>`
       + `<header class="ts-head"><div class="ts-wrap"><a class="ts-brand" href="/">${esc(SITE.brand)}<span>교체·이전</span></a><nav class="ts-menu" aria-label="주요 메뉴">${menu}</nav></div></header>`
       + o.top + `<div class="ts-wrap ts-grid"><main class="ts-main">${o.body}</main>${side}</div>`
       + `<footer class="ts-foot"><div class="ts-wrap"><div><strong>${esc(SITE.brand)}</strong><p>${esc(SITE.tagline)}</p><p>상담전화 ${SITE.telView}</p></div><div><strong>바로가기</strong>${o.nav.map(n => `<a href="${n.href}">${esc(n.name)}</a>`).join('')}<a href="/list">전체 목록</a></div></div></footer>`
-      + `<div class="ts-mbar">${k || `<a href="tel:${SITE.tel}">전화 상담</a>`}<button type="button" data-open="1">상담 신청</button></div>`;
+      + `<div class="ts-mbar one"><a href="tel:${SITE.tel}" data-tk="tel">전화 문의 ${SITE.telView}</a></div>`;
   },
   crumb: items => `<div class="ts-path"><div class="ts-wrap">${items.map(i => i.last ? `<span>${i.name}</span>` : `<a href="${i.href}">${i.name}</a><i>›</i>`).join('')}</div></div>`,
   hero: o => `<section class="ts-hero"><div class="ts-wrap"><div><h1>${o.h1}</h1><p class="ts-lead">${o.hook}</p>${T.buttons()}</div><dl class="ts-panel">${o.price.map((x, i) => `<dt>${['설치 조건', '요금', '수수료'][i] || '안내'}</dt><dd>${x}</dd>`).join('')}</dl></div></section>${o.crumb}`,
-  buttons: () => `<div class="ts-btns"><button class="ts-btn a" type="button" data-open="1" data-tk="contact">상담 신청</button><a class="ts-btn o" href="tel:${SITE.tel}">${SITE.telView}</a></div>`,
+  buttons: () => `<div class="ts-btns"><a class="ts-btn a" href="tel:${SITE.tel}" data-tk="tel">전화 문의 ${SITE.telView}</a></div>`,
   tabs: items => `<nav class="ts-tabs" aria-label="카드단말기 형태">${items.map(i => `<a href="${i.href}"${i.on ? ' class="on"' : ''}>${i.name}</a>`).join('')}</nav>`,
   sec: (h2, inner, kind) => `<article class="ts-art${kind === 'cta' ? ' ts-cta' : kind === 'faq' ? ' ts-faq' : ''}"><h2>${h2}</h2>${inner}</article>`,
   p: h => `<p>${h}</p>`,
@@ -588,61 +588,7 @@ function faqBlock(list, ctx, seed, h2) {
 }
 function ctaSec(h2, text) { return T.sec(esc(h2), T.p(esc(text)) + T.buttons(), 'cta'); }
 
-function modal(prodKey) {
-  const k = T.k;
-  const opts = ['<option value="">선택해 주세요</option>'].concat(PRODUCTS.map(p => `<option${p.key === prodKey ? ' selected' : ''}>${p.form}</option>`), ['<option>💳 형태 상담 후 결정</option>']).join('');
-  const biz = ['<option value="">선택</option>'].concat(BIZ.map(b => `<option>${b.ko}</option>`), ['<option>기타</option>']).join('');
-  return `<div class="${k}-md" id="md" role="dialog" aria-modal="true" aria-label="상담 신청"><div class="${k}-mdb">
-<div id="ct-form"><div class="${k}-mdh"><strong>${esc(T.formTitle)}</strong><button class="${k}-x" type="button" data-close="1" aria-label="닫기">×</button></div>
-<label for="ct-name">상호명</label><input id="ct-name" autocomplete="organization" placeholder="상호 또는 성함">
-<label for="ct-phone">연락처</label><input id="ct-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000">
-<label for="ct-addr">설치 주소</label><div class="${k}-row"><input id="ct-addr" readonly placeholder="주소 검색"><button class="${k}-sbtn" type="button" onclick="searchAddr()">검색</button></div>
-<input id="ct-addr2" placeholder="상세 주소">
-<label for="ct-biz">업종</label><select id="ct-biz">${biz}</select>
-<label for="ct-product">상품 선택</label><select id="ct-product">${opts}</select>
-<label for="ct-msg">문의 내용</label><textarea id="ct-msg" rows="3" placeholder="${esc(SITE.formHint)}"></textarea>
-<p class="${k}-agree">수집 항목: 상호(이름), 연락처, 주소, 문의 내용 · 수집 목적: 상담 문의 접수 및 답변, 견적 안내 · 보유 기간: 문의 처리 완료 후 1년 이내 파기. 동의를 거부할 수 있으며, 거부 시 문의 접수가 제한됩니다. 문의 접수 시 위 내용에 동의한 것으로 간주합니다.</p>
-<button class="${k}-submit ct-submit" type="button" onclick="submitForm()">상담 신청하기</button></div>
-<div class="${k}-ok" id="ct-success"><strong>문의가 접수되었습니다</strong><p>확인 후 연락드리겠습니다. 급하시면 <a href="tel:${SITE.tel}">${SITE.telView}</a>로 전화 주세요.</p><button class="${k}-sbtn" type="button" data-close="1">닫기</button></div>
-</div></div>
-<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js" defer></script>
-<script>
-(function(){var m=document.getElementById('md');document.addEventListener('click',function(e){var o=e.target.closest&&e.target.closest('[data-open]');if(o){m.classList.add('on');return;}var c=e.target.closest&&e.target.closest('[data-close]');if(c||e.target===m)m.classList.remove('on');});})();
-function searchAddr(){
- new daum.Postcode({
- oncomplete:function(data){
- document.getElementById('ct-addr').value=data.roadAddress||data.jibunAddress;
- document.getElementById('ct-addr2').focus();
- }
- }).open();
-}
-function submitForm(){
- var name=document.getElementById('ct-name').value.trim();
- var phone=document.getElementById('ct-phone').value.trim();
- if(!name){alert('상호(이름)을 입력해주세요.');return;}
- if(!phone){alert('연락처를 입력해주세요.');return;}
- var addr=document.getElementById('ct-addr').value.trim();
- if(!addr){alert('주소를 검색해주세요.');return;}
- var addr2=document.getElementById('ct-addr2').value.trim();
- var product=document.getElementById('ct-product').value;
- if(!product){alert('문의 제품을 선택해주세요.');return;}
- var biz=document.getElementById('ct-biz').value;
- var msg=document.getElementById('ct-msg').value.trim();
- var btn=document.querySelector('.ct-submit');
- btn.textContent='접수 중...';btn.disabled=true;
- var p=new URLSearchParams();
- p.append('name',name);p.append('phone',phone);p.append('addr',addr+' '+addr2);
- p.append('product',product);p.append('biz',biz);p.append('msg',msg);
- var img=new Image();
- img.src='${GAS_URL}?'+p.toString();
- setTimeout(function(){
-  document.getElementById('ct-form').style.display='none';
-  document.getElementById('ct-success').classList.add('on');
-  try{navigator.sendBeacon('/api/track',new Blob([JSON.stringify({type:'contact',page:location.pathname,ref:document.referrer,b:'상담 신청 접수'})],{type:'application/json'}));}catch(e){}
- },2000);
-}
-</script>`;
-}
+/* 상담 폼은 두지 않는다 — 문의는 전화로만 받는다 (사용자 지시) */
 
 /* 긴 페이지는 H2 에 id 를 붙이고 목차를 앞에 둔다 */
 function withToc(body) {
@@ -657,11 +603,12 @@ function withToc(body) {
   if (heads.length < 5) return body;
   return T.toc(heads) + out;
 }
+
 function page(o) {
   /* 설명문이 70자에 못 미치면 사이트 소개를 덧붙인다 */
   if (o.desc && o.desc.length < 70 && !o.noindex) o = { ...o, desc: clip(o.desc + ' ' + SITE.brand + '에서 ' + SITE.tagline + '를 지역·업종별로 확인하세요.', 70, 150) };
   const ld = (o.ld || []).concat([{ '@context': 'https://schema.org', '@type': 'Organization', name: SITE.brand, url: ORIGIN + '/', telephone: SITE.telView }]);
-  return head({ ...o, ld }) + T.layout({ nav: navItems(o.active), top: o.top || '', body: (o.toc ? withToc(o.body) : o.body) + T.src('최종 업데이트 ' + BUILD_DATE), prod: o.prod }) + modal(o.prod) + TRACK_JS + '</body></html>';
+  return head({ ...o, ld }) + T.layout({ nav: navItems(o.active), top: o.top || '', body: (o.toc ? withToc(o.body) : o.body) + T.src('최종 업데이트 ' + BUILD_DATE), prod: o.prod }) + TRACK_JS + '</body></html>';
 }
 
 /* 각도 섹션 하나 렌더 */
